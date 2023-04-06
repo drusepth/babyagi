@@ -73,6 +73,7 @@ class Llama(BaseLLM, BaseModel):
         result_thread.join()
 
         return result
+
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         result = self._generate([prompt], stop)
         return result.generations[0][0].text
@@ -84,7 +85,6 @@ class Llama(BaseLLM, BaseModel):
     @property
     def _llm_type(self) -> str:
         return "llama"
-
 
 # Set Variables
 load_dotenv()
@@ -241,7 +241,7 @@ async def prioritization_agent(this_task_id: int):
     prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
-    Start the task list with number {next_task_id}."""
+    Start the task list with number {next_task_id}.\n\n"""
     response = await llama_call(prompt)
     new_tasks = response.split('\n')
     task_list = deque()
@@ -253,8 +253,8 @@ async def prioritization_agent(this_task_id: int):
             task_list.append({"task_id": task_id, "task_name": task_name})
 
 async def execution_agent(objective: str, task: str) -> str:
-    context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
-    prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
+    context = context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
+    prompt = f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
     # TODO: this is where we should insert langchain and its agents to actually execute the task, rather than talk about how to do it
     return await llama_call(prompt)
 
@@ -320,6 +320,7 @@ async def main_loop():
         # Step 3: Create new tasks and reprioritize task list
         new_tasks = await task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
+        print(str(len(new_tasks)) + " new tasks created: " + str(new_tasks))
         for new_task in new_tasks:
             task_id_counter += 1
             new_task.update({"task_id": task_id_counter})
