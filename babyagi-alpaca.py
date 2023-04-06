@@ -18,10 +18,9 @@ from sentence_transformers import SentenceTransformer
 import subprocess
 
 model_path = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin"
-# sbert_model = SentenceTransformer('paraphrase-mpnet-base-v2')
+sbert_model = SentenceTransformer('paraphrase-mpnet-base-v2')
 
 class ChatParameters(BaseModel):
-    #model: str = Field(default="ggml-alpaca-13b-q4.bin")
     model: str = Field(default=model_path)
     temperature: float = Field(default=0.2)
 
@@ -33,11 +32,9 @@ class ChatParameters(BaseModel):
     repeat_last_n: int = Field(default=64)
     repeat_penalty: float = Field(default=1.3)
 
-
 class Question(BaseModel):
     question: str
     answer: str
-
 
 class Chat(BaseModel):
     id: UUID = Field(default_factory=uuid4)
@@ -237,7 +234,7 @@ async def task_creation_agent(objective: str, result: Dict, task_description: st
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
-async def prioritization_agent(this_task_id:int):
+async def prioritization_agent(this_task_id: int):
     global task_list
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
@@ -255,14 +252,10 @@ async def prioritization_agent(this_task_id:int):
             task_name = task_parts[1].strip()
             task_list.append({"task_id": task_id, "task_name": task_name})
 
-async def execution_agent(objective:str, task: str) -> str:
-    #print("executing objective = " + objective);
-    #print("table name = " + YOUR_TABLE_NAME)
-    #context = context_agent(index="quickstart", query="my_search_query", n=5)
+async def execution_agent(objective: str, task: str) -> str:
     context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
-    print("\n*******RELEVANT CONTEXT******\n")
-    print(context)
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
+    # TODO: this is where we should insert langchain and its agents to actually execute the task, rather than talk about how to do it
     return await llama_call(prompt)
 
 def context_agent(query: str, index: str, n: int):
@@ -279,10 +272,10 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-# def get_embedding(text: str):
-#     text = text.replace("\n", " ")
-#     embedding = sbert_model.encode([text])[0]
-#     return embedding.tolist()
+def get_embedding(text: str):
+    text = text.replace("\n", " ")
+    embedding = sbert_model.encode([text])[0]
+    return embedding.tolist()
 
 # Add the first task
 first_task = {
@@ -333,6 +326,7 @@ async def main_loop():
         #    add_task(new_task)
         # await prioritization_agent(this_task_id)
 
+        print("Sleeping for a second before re-looping")
         time.sleep(1)  # Sleep before checking the task list again
 
 # Run the main loop asynchronously
