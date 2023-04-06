@@ -228,9 +228,9 @@ async def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 1
 async def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
     response = await llama_call(prompt)
-    print("task creation response:")
-    print(response)
-    print("=======================")
+    # print("task creation response:")
+    # print(response)
+    # print("=======================")
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
@@ -318,13 +318,13 @@ async def main_loop():
             index.upsert([(result_id, get_ada_embedding(vector), {"task": task['task_name'], "result": result})])
 
         # Step 3: Create new tasks and reprioritize task list
-        # new_tasks = await task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+        new_tasks = await task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-        # for new_task in new_tasks:
-        #     task_id_counter += 1
-        #     new_task.update({"task_id": task_id_counter})
-        #    add_task(new_task)
-        # await prioritization_agent(this_task_id)
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        await prioritization_agent(this_task_id)
 
         print("Sleeping for a second before re-looping")
         time.sleep(1)  # Sleep before checking the task list again
