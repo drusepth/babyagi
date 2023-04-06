@@ -262,7 +262,7 @@ async def execution_agent(objective:str, task: str) -> str:
     print("\n*******RELEVANT CONTEXT******\n")
     print(context)
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
-    return await llama_call(prompt, 0.7, 2000)
+    return await llama_call(prompt)
 
 def context_agent(query: str, index: str, n: int):
     query_embedding = get_ada_embedding(query)
@@ -295,12 +295,9 @@ task_id_counter = 1
 
 llama = Llama()
 
-import ipdb; ipdb.set_trace()
-
 async def main_loop():
     task_id_counter = 1
     while True:
-        import ipdb; ipdb.set_trace()
 
         if task_list:
             # Print the task list
