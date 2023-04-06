@@ -72,6 +72,10 @@ class Llama(BaseLLM, BaseModel):
         result_thread.start()
         result_thread.join()
 
+        print("In Llama, got the following result for prompt:")
+        print(result)
+        print("=============")
+
         return result
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
@@ -124,6 +128,11 @@ dimension = 1536
 metric = "cosine"
 pod_type = "p1"
 if table_name not in pinecone.list_indexes():
+    pinecone.create_index(table_name, dimension=dimension, metric=metric, pod_type=pod_type)
+
+START_PINECONE_FROM_SCRATCH = True
+if START_PINECONE_FROM_SCRATCH:
+    pinecone.delete_index(table_name)
     pinecone.create_index(table_name, dimension=dimension, metric=metric, pod_type=pod_type)
 
 # Connect to the index
@@ -231,7 +240,7 @@ async def task_creation_agent(objective: str, result: Dict, task_description: st
 
     print("=============================")
     print("task_creation_agent response:")
-    print(response)
+    print(response) # THIS IS THE LINE I AM ASKING A QUESTION ABOUT
     print("=============================")
 
     new_tasks = response.split('\n')
