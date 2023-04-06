@@ -4,6 +4,7 @@ import pinecone
 import time
 import sys
 import openai
+import threading
 from pydantic import BaseModel, Field
 from collections import deque
 from uuid import UUID, uuid4
