@@ -228,9 +228,12 @@ async def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 1
 async def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
     prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
     response = await llama_call(prompt)
-    # print("task creation response:")
-    # print(response)
-    # print("=======================")
+
+    print("=============================")
+    print("task_creation_agent response:")
+    print(response)
+    print("=============================")
+
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
