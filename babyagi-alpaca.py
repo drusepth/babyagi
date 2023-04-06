@@ -346,5 +346,8 @@ async def main_loop():
 # Run the main loop asynchronously
 # asyncio.run(main_loop())
 
-test_response = llama_call("Your name is Bob. Please repeat your name back:")
-print("response = " + str(test_response) + " len=" + len(test_response))
+async def test_agent():
+    test_response = await llama_call("Your name is Bob. Please repeat your name back:")
+    print("response = " + str(test_response) + " len=" + len(test_response))
+
+asyncio.run(test_agent())
