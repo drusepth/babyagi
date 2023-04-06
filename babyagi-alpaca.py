@@ -72,10 +72,6 @@ class Llama(BaseLLM, BaseModel):
         result_thread.start()
         result_thread.join()
 
-        print("In Llama, got the following result for prompt:")
-        print(result)
-        print("=============")
-
         return result
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
@@ -348,4 +344,7 @@ async def main_loop():
         time.sleep(1)  # Sleep before checking the task list again
 
 # Run the main loop asynchronously
-asyncio.run(main_loop())
+# asyncio.run(main_loop())
+
+test_response = llama_call("Your name is Bob. Please repeat your name back:")
+print("response = " + str(test_response) + " len=" + len(test_response))
