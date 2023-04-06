@@ -256,7 +256,7 @@ async def prioritization_agent(this_task_id:int):
             task_list.append({"task_id": task_id, "task_name": task_name})
 
 async def execution_agent(objective:str, task: str) -> str:
-    print("executing objective = " + objective);
+    #print("executing objective = " + objective);
     #print("table name = " + YOUR_TABLE_NAME)
     #context = context_agent(index="quickstart", query="my_search_query", n=5)
     context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
@@ -269,8 +269,8 @@ def context_agent(query: str, index: str, n: int):
     query_embedding = get_ada_embedding(query)
     index = pinecone.Index(index_name=index)
     results = index.query(query_embedding, top_k=n, include_metadata=True)
-    print("***** RESULTS *****")
-    print(results)
+    # print("***** RESULTS *****")
+    # print(results)
     sorted_results = sorted(results.matches, key=lambda x: x.score, reverse=True)
     return [(str(item.metadata['task'])) for item in sorted_results]
 
@@ -279,10 +279,10 @@ def get_ada_embedding(text):
     text = text.replace("\n", " ")
     return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
-def get_embedding(text: str):
-    text = text.replace("\n", " ")
-    embedding = sbert_model.encode([text])[0]
-    return embedding.tolist()
+# def get_embedding(text: str):
+#     text = text.replace("\n", " ")
+#     embedding = sbert_model.encode([text])[0]
+#     return embedding.tolist()
 
 # Add the first task
 first_task = {
@@ -302,7 +302,7 @@ async def main_loop():
 
         if task_list:
             # Print the task list
-            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+            print("\033[95m\033[1m" + "\n*****QUEUED TASK LIST*****\n" + "\033[0m\033[0m")
             for t in task_list:
                 print(str(t['task_id']) + ": " + t['task_name'])
 
@@ -312,6 +312,7 @@ async def main_loop():
             print(str(task['task_id']) + ": " + task['task_name'])
 
             # Send to execution function to complete the task based on the context
+            print("\033[92m\033[1m" + "\n*****ATTEMPTING TO COMPLETE TASK*****\n" + "\033[0m\033[0m")
             result = await execution_agent(OBJECTIVE, task["task_name"])
             this_task_id = int(task["task_id"])
             print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
@@ -324,17 +325,15 @@ async def main_loop():
             index.upsert([(result_id, get_ada_embedding(vector), {"task": task['task_name'], "result": result})])
 
         # Step 3: Create new tasks and reprioritize task list
-        new_tasks = await task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+        # new_tasks = await task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
 
-        for new_task in new_tasks:
-            task_id_counter += 1
-            new_task.update({"task_id": task_id_counter})
-            add_task(new_task)
-        await prioritization_agent(this_task_id)
+        # for new_task in new_tasks:
+        #     task_id_counter += 1
+        #     new_task.update({"task_id": task_id_counter})
+        #    add_task(new_task)
+        # await prioritization_agent(this_task_id)
 
         time.sleep(1)  # Sleep before checking the task list again
 
 # Run the main loop asynchronously
 asyncio.run(main_loop())
-
-time.sleep(1)  # Sleep before checking the task list again
