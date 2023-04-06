@@ -3,6 +3,7 @@ import asyncio
 import pinecone
 import time
 import sys
+import openai
 from pydantic import BaseModel, Field
 from collections import deque
 from uuid import UUID, uuid4
@@ -16,7 +17,7 @@ from sentence_transformers import SentenceTransformer
 import subprocess
 
 model_path = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin"
-sbert_model = SentenceTransformer('paraphrase-mpnet-base-v2')
+# sbert_model = SentenceTransformer('paraphrase-mpnet-base-v2')
 
 class ChatParameters(BaseModel):
     #model: str = Field(default="ggml-alpaca-13b-q4.bin")
@@ -115,6 +116,10 @@ print(OBJECTIVE)
 # Configure Pinecone
 pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
+# Configure OpenAI for embeddings (TODO find local solution for this too)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+openai.api_key = OPENAI_API_KEY
+
 # Create Pinecone index
 table_name = YOUR_TABLE_NAME
 dimension = 1536
@@ -134,9 +139,10 @@ def add_task(task: Dict):
 
 # Alpaca integration
 async def generate(
+    prompt: str,
     #model: str = "ggml-alpaca-13b-q4.bin",
-    model: str = model_path,
-    prompt: str = "The sky is blue because",
+    #model: str = model_path,
+    model: str = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
     n_predict: int = 300,
     temp: float = 0.8,
     top_k: int = 10000,
@@ -149,7 +155,8 @@ async def generate(
         #"./llama",
         "/home/drusepth/dalai/alpaca/main",
         "--model",
-        "" + model,
+        #"" + model,
+        "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
         "--prompt",
         prompt,
         "--n_predict",
@@ -167,7 +174,7 @@ async def generate(
         "--threads",
         "8",
     )
-    print(args)
+    #print(args)
     procLlama = await asyncio.create_subprocess_exec(
         *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -192,7 +199,7 @@ async def generate(
         if prompt in answer:
             yield remove_matching_end(prompt, chunk)
 
-def remove_matching_end(prompt: str, output: str):
+def remove_matching_end(a: str, b: str):
     min_length = min(len(a), len(b))
 
     for i in range(min_length, 0, -1):
@@ -201,18 +208,28 @@ def remove_matching_end(prompt: str, output: str):
 
     return b
 
-def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 100):
-    output = ""
-    asyncio.run(generate(prompt))
-    return remove_matching_end(prompt, output)
+async def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 100):
+    #output = ""
+    #asyncio.run(generate(prompt))
+    #return remove_matching_end(prompt, output)
 
-def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str], gpt_version: str = 'gpt-3'):
+    generated_text = ""
+
+    #print("openai_call for prompt=")
+    #print(prompt)
+    async for result in generate(prompt):
+        generated_text += remove_matching_end(result, prompt)
+
+    return generated_text
+
+
+async def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str], gpt_version: str = 'gpt-3'):
     prompt = f"You are an task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
-    response = openai_call(prompt, USE_GPT4)
+    response = await openai_call(prompt)
     new_tasks = response.split('\n')
     return [{"task_name": task_name} for task_name in new_tasks]
 
-def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
+async def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
     global task_list
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
@@ -220,7 +237,7 @@ def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
-    response = openai_call(prompt, USE_GPT4)
+    response = await openai_call(prompt)
     new_tasks = response.split('\n')
     task_list = deque()
     for task_string in new_tasks:
@@ -230,15 +247,15 @@ def prioritization_agent(this_task_id:int, gpt_version: str = 'gpt-3'):
             task_name = task_parts[1].strip()
             task_list.append({"task_id": task_id, "task_name": task_name})
 
-def execution_agent(objective:str,task: str, gpt_version: str = 'gpt-3') -> str:
-    print("objective = " + objective);
-    print("table name = " + YOUR_TABLE_NAME)
+async def execution_agent(objective:str,task: str, gpt_version: str = 'gpt-3') -> str:
+    print("executing objective = " + objective);
+    #print("table name = " + YOUR_TABLE_NAME)
     #context = context_agent(index="quickstart", query="my_search_query", n=5)
     context=context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
     print("\n*******RELEVANT CONTEXT******\n")
     print(context)
     prompt =f"You are an AI who performs one task based on the following objective: {objective}.\nTake into account these previously completed tasks: {context}\nYour task: {task}\nResponse:"
-    return openai_call(prompt, USE_GPT4, 0.7, 2000)
+    return await openai_call(prompt, 0.7, 2000)
 
 def context_agent(query: str, index: str, n: int):
     query_embedding = get_ada_embedding(query)
@@ -250,7 +267,9 @@ def context_agent(query: str, index: str, n: int):
     return [(str(item.metadata['task'])) for item in sorted_results]
 
 def get_ada_embedding(text):
-    return get_embedding(text)
+    #return get_embedding(text)
+    text = text.replace("\n", " ")
+    return openai.Embedding.create(input=[text], model="text-embedding-ada-002")["data"][0]["embedding"]
 
 def get_embedding(text: str):
     text = text.replace("\n", " ")
@@ -266,37 +285,78 @@ first_task = {
 add_task(first_task)
 # Main loop
 task_id_counter = 1
-while True:
-    if task_list:
-        # Print the task list
-        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
-        for t in task_list:
-            print(str(t['task_id'])+": "+t['task_name'])
 
-        # Step 1: Pull the first task
-        task = task_list.popleft()
-        print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
-        print(str(task['task_id'])+": "+task['task_name'])
+async def main_loop():
+    task_id_counter = 1
+    while True:
+        if task_list:
+            # Print the task list
+            print("\033[95m\033[1m" + "\n*****TASK LIST*****\n" + "\033[0m\033[0m")
+            for t in task_list:
+                print(str(t['task_id']) + ": " + t['task_name'])
 
-        # Send to execution function to complete the task based on the context
-        result = execution_agent(OBJECTIVE,task["task_name"])
-        this_task_id = int(task["task_id"])
-        print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
-        print(result)
+            # Step 1: Pull the first task
+            task = task_list.popleft()
+            print("\033[92m\033[1m" + "\n*****NEXT TASK*****\n" + "\033[0m\033[0m")
+            print(str(task['task_id']) + ": " + task['task_name'])
 
-        # Step 2: Enrich result and store in Pinecone
-        enriched_result = {'data': result}  # This is where you should enrich the result if needed
-        result_id = f"result_{task['task_id']}"
-        vector = enriched_result['data']  # extract the actual result from the dictionary
-        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+            # Send to execution function to complete the task based on the context
+            result = await execution_agent(OBJECTIVE, task["task_name"])
+            this_task_id = int(task["task_id"])
+            print("\033[93m\033[1m" + "\n*****TASK RESULT*****\n" + "\033[0m\033[0m")
+            print(result)
 
-    # Step 3: Create new tasks and reprioritize task list
-    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+            # Step 2: Enrich result and store in Pinecone
+            enriched_result = {'data': result}  # This is where you should enrich the result if needed
+            result_id = f"result_{task['task_id']}"
+            vector = enriched_result['data']  # extract the actual result from the dictionary
+            index.upsert([(result_id, get_ada_embedding(vector), {"task": task['task_name'], "result": result})])
 
-    for new_task in new_tasks:
-        task_id_counter += 1
-        new_task.update({"task_id": task_id_counter})
-        add_task(new_task)
-    prioritization_agent(this_task_id)
+        # Step 3: Create new tasks and reprioritize task list
+        new_tasks = await task_creation_agent(OBJECTIVE, enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+
+        for new_task in new_tasks:
+            task_id_counter += 1
+            new_task.update({"task_id": task_id_counter})
+            add_task(new_task)
+        await prioritization_agent(this_task_id)
+
+        time.sleep(1)  # Sleep before checking the task list again
+
+# Run the main loop asynchronously
+asyncio.run(main_loop())
+
+#while True:
+#    if task_list:
+#        # Print the task list
+#        print("\033[95m\033[1m"+"\n*****TASK LIST*****\n"+"\033[0m\033[0m")
+#        for t in task_list:
+#            print(str(t['task_id'])+": "+t['task_name'])
+#
+#        # Step 1: Pull the first task
+#        task = task_list.popleft()
+#        print("\033[92m\033[1m"+"\n*****NEXT TASK*****\n"+"\033[0m\033[0m")
+#        print(str(task['task_id'])+": "+task['task_name'])
+#
+#        # Send to execution function to complete the task based on the context
+#        result = await execution_agent(OBJECTIVE,task["task_name"])
+#        this_task_id = int(task["task_id"])
+#        print("\033[93m\033[1m"+"\n*****TASK RESULT*****\n"+"\033[0m\033[0m")
+#        print(result)
+#
+#        # Step 2: Enrich result and store in Pinecone
+#        enriched_result = {'data': result}  # This is where you should enrich the result if needed
+#        result_id = f"result_{task['task_id']}"
+#        vector = enriched_result['data']  # extract the actual result from the dictionary
+#        index.upsert([(result_id, get_ada_embedding(vector),{"task":task['task_name'],"result":result})])
+#
+#    # Step 3: Create new tasks and reprioritize task list
+#    new_tasks = task_creation_agent(OBJECTIVE,enriched_result, task["task_name"], [t["task_name"] for t in task_list])
+#
+#    for new_task in new_tasks:
+#        task_id_counter += 1
+#        new_task.update({"task_id": task_id_counter})
+#        add_task(new_task)
+#    prioritization_agent(this_task_id)
 
 time.sleep(1)  # Sleep before checking the task list again
