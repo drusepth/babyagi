@@ -241,7 +241,7 @@ async def prioritization_agent(this_task_id:int):
     global task_list
     task_names = [t["task_name"] for t in task_list]
     next_task_id = int(this_task_id)+1
-    prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the fol>
+    prompt = f"""You are an task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as a numbered list, like:
     #. First task
     #. Second task
     Start the task list with number {next_task_id}."""
