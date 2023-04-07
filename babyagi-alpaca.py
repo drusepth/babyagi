@@ -126,7 +126,7 @@ pod_type = "p1"
 if table_name not in pinecone.list_indexes():
     pinecone.create_index(table_name, dimension=dimension, metric=metric, pod_type=pod_type)
 
-START_PINECONE_FROM_SCRATCH = True
+START_PINECONE_FROM_SCRATCH = False
 if START_PINECONE_FROM_SCRATCH:
     pinecone.delete_index(table_name)
     pinecone.create_index(table_name, dimension=dimension, metric=metric, pod_type=pod_type)
