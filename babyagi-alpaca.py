@@ -201,18 +201,7 @@ async def generate(
             else:
                 return
 
-        buffer += chunk
-        try:
-            decoded_chunk = buffer.decode("utf-8")
-            buffer = b""
-        except UnicodeDecodeError as e:
-            if e.start > 0:
-                decoded_chunk = buffer[:e.start].decode("utf-8")
-                buffer = buffer[e.start:]
-            else:
-                continue
-
-        answer += decoded_chunk
+        chunk = chunk.decode("utf-8")
 
         if PRINT_MODEL_THOUGHTS_LIVE:
             sys.stdout.write(chunk)
@@ -220,8 +209,7 @@ async def generate(
 
         answer += chunk
 
-        if prompt in answer:
-            yield remove_matching_end(prompt, chunk)
+        yield remove_matching_end(prompt, chunk)
 
 def remove_matching_end(a: str, b: str):
     index = b.find(a)
