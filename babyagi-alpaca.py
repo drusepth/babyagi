@@ -213,9 +213,12 @@ async def generate(
             yield remove_matching_end(prompt, chunk)
 
 def remove_matching_end(a: str, b: str):
-    index = b.find(a)
-    if index != -1:
-        return b[index + len(a):]
+    min_length = min(len(a), len(b))
+
+    for i in range(min_length, 0, -1):
+        if a[-i:] == b[:i]:
+            return b[i:]
+
     return b
 
 async def llama_call(prompt: str, stop: Optional[List[str]] = None) -> str:
