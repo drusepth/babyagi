@@ -231,7 +231,7 @@ async def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 1
 
 
 async def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
-    prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create new tasks to be completed by the AI system that do not overlap with incomplete tasks. Return the tasks as an array."
+    prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create a list of new tasks to be completed by the AI system that do not overlap with incomplete tasks. Print each task on a new line.\n\nTasks:\n"
     response = await llama_call(prompt)
 
     print("=============================")
@@ -344,12 +344,13 @@ async def main_loop():
         time.sleep(1)  # Sleep before checking the task list again
 
 # Run the main loop asynchronously
-# asyncio.run(main_loop())
+asyncio.run(main_loop())
 
-async def test_agent():
-    test_response = await llama_call("Your name is Bob. Please repeat your name back:")
-    print("response = " + str(test_response) + " len=" + str(len(test_response)))
-    return test_response
 
-test_scope = asyncio.run(test_agent())
-print("test_scope = " + str(test_scope) + " len=" + str(len(test_scope)))
+# async def test_agent():
+#     test_response = await llama_call("Your name is Bob. Please repeat your name back:")
+#     print("response = " + str(test_response) + " len=" + str(len(test_response)))
+#     return test_response
+
+# test_scope = asyncio.run(test_agent())
+# print("test_scope = " + str(test_scope) + " len=" + str(len(test_scope)))
