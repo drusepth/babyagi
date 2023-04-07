@@ -188,6 +188,7 @@ async def generate(
     )
 
     answer = ""
+    buffer = b""
 
     while True:
         chunk = await procLlama.stdout.read(chunk_size)
@@ -200,10 +201,20 @@ async def generate(
             else:
                 return
 
-        chunk = chunk.decode("utf-8")
+        buffer += chunk
+        try:
+            decoded_chunk = buffer.decode("utf-8")
+            buffer = b""
+        except UnicodeDecodeError as e:
+            if e.start > 0:
+                decoded_chunk = buffer[:e.start].decode("utf-8")
+                buffer = buffer[e.start:]
+            else:
+                continue
+
+        answer += decoded_chunk
 
         if PRINT_MODEL_THOUGHTS_LIVE:
-            # print(chunk, end="", flush=True)
             sys.stdout.write(chunk)
             sys.stdout.flush()
 
