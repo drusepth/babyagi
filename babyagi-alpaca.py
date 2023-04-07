@@ -209,7 +209,8 @@ async def generate(
 
         answer += chunk
 
-        yield remove_matching_end(prompt, chunk)
+        if prompt in answer:
+            yield remove_matching_end(prompt, chunk)
 
 def remove_matching_end(a: str, b: str):
     index = b.find(a)
