@@ -246,7 +246,8 @@ async def task_creation_agent(objective: str, result: Dict, task_description: st
     print(response) # THIS IS THE LINE I AM ASKING A QUESTION ABOUT
     print("=============================")
 
-    new_tasks = response.split('|')
+    new_tasks = response.split("\n")
+    print("split to find " + str(len(new_tasks)) + " tasks")
     return [{"task_name": task_name} for task_name in new_tasks]
 
 async def prioritization_agent(this_task_id: int):
@@ -329,15 +330,10 @@ async def main_loop():
 
             # Step 2: Enrich result and store in Pinecone
             enriched_result = {'data': result}  # This is where you should enrich the result if needed
-            print("Enriched result: ")
-            print(enriched_result)
 
             result_id = f"result_{task['task_id']}"
             vector = enriched_result['data']  # extract the actual result from the dictionary
             index.upsert([(result_id, get_ada_embedding(vector), {"task": task['task_name'], "result": result})])
-
-            print("Final stored result")
-            print(index.query(get_ada_embedding(vector), top_k=1, include_metadata=True))
 
         # Step 3: Create new tasks and reprioritize task list
         print("\033[92m\033[1m" + "\n*****CREATING NEW TASKS*****\n" + "\033[0m\033[0m")
