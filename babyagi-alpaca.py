@@ -20,6 +20,8 @@ import subprocess
 model_path = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin"
 sbert_model = SentenceTransformer('paraphrase-mpnet-base-v2')
 
+PRINT_MODEL_THOUGHTS_LIVE = True
+
 class ChatParameters(BaseModel):
     model: str = Field(default=model_path)
     temperature: float = Field(default=0.2)
@@ -145,66 +147,70 @@ def add_task(task: Dict):
     task_list.append(task)
 
 # Alpaca integration
-# async def generate(
-#     prompt: str,
-#     #model: str = "ggml-alpaca-13b-q4.bin",
-#     #model: str = model_path,
-#     model: str = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
-#     n_predict: int = 300,
-#     temp: float = 0.8,
-#     top_k: int = 10000,
-#     top_p: float = 0.40,
-#     repeat_last_n: int = 100,
-#     repeat_penalty: float = 1.2,
-#     chunk_size: int = 4,  # Define a chunk size (in bytes) for streaming the output bit by bit
-# ):
-#     args = (
-#         #"./llama",
-#         "/home/drusepth/dalai/alpaca/main",
-#         "--model",
-#         #"" + model,
-#         "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
-#         "--prompt",
-#         prompt,
-#         "--n_predict",
-#         str(n_predict),
-#         "--temp",
-#         str(temp),
-#         "--top_k",
-#         str(top_k),
-#         "--top_p",
-#         str(top_p),
-#         "--repeat_last_n",
-#         str(repeat_last_n),
-#         "--repeat_penalty",
-#         str(repeat_penalty),
-#         "--threads",
-#         "8",
-#     )
-#     #print(args)
-#     procLlama = await asyncio.create_subprocess_exec(
-#         *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-#     )
+async def generate(
+    prompt: str,
+    #model: str = "ggml-alpaca-13b-q4.bin",
+    #model: str = model_path,
+    model: str = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
+    n_predict: int = 300,
+    temp: float = 0.8,
+    top_k: int = 10000,
+    top_p: float = 0.40,
+    repeat_last_n: int = 100,
+    repeat_penalty: float = 1.2,
+    chunk_size: int = 4,  # Define a chunk size (in bytes) for streaming the output bit by bit
+):
+    args = (
+        #"./llama",
+        "/home/drusepth/dalai/alpaca/main",
+        "--model",
+        "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin", #"" + model,
+        "--prompt",
+        prompt,
+        "--n_predict",
+        str(n_predict),
+        "--temp",
+        str(temp),
+        "--top_k",
+        str(top_k),
+        "--top_p",
+        str(top_p),
+        "--repeat_last_n",
+        str(repeat_last_n),
+        "--repeat_penalty",
+        str(repeat_penalty),
+        "--threads",
+        "8",
+    )
+    #print(args)
+    procLlama = await asyncio.create_subprocess_exec(
+        *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
 
-#     answer = ""
+    answer = ""
 
-#     while True:
-#         chunk = await procLlama.stdout.read(chunk_size)
-#         if not chunk:
-#             return_code = await procLlama.wait()
+    while True:
+        chunk = await procLlama.stdout.read(chunk_size)
+        if not chunk:
+            return_code = await procLlama.wait()
 
-#             if return_code != 0:
-#                 error_output = await procLlama.stderr.read()
-#                 raise ValueError(error_output.decode("utf-8"))
-#             else:
-#                 return
+            if return_code != 0:
+                error_output = await procLlama.stderr.read()
+                raise ValueError(error_output.decode("utf-8"))
+            else:
+                return
 
-#         chunk = chunk.decode("utf-8")
-#         print(chunk, end="",flush=True)
-#         answer += chunk
+        chunk = chunk.decode("utf-8")
 
-#         if prompt in answer:
-#             yield remove_matching_end(prompt, chunk)
+        if PRINT_MODEL_THOUGHTS_LIVE:
+            # print(chunk, end="", flush=True)
+            sys.stdout.write(chunk)
+            # sys.stdout.flush()
+
+        answer += chunk
+
+        if prompt in answer:
+            yield remove_matching_end(prompt, chunk)
 
 def remove_matching_end(a: str, b: str):
     min_length = min(len(a), len(b))
