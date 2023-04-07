@@ -205,7 +205,7 @@ async def generate(
         if PRINT_MODEL_THOUGHTS_LIVE:
             # print(chunk, end="", flush=True)
             sys.stdout.write(chunk)
-            # sys.stdout.flush()
+            sys.stdout.flush()
 
         answer += chunk
 
