@@ -215,7 +215,7 @@ async def generate(
 def remove_matching_end(a: str, b: str):
     index = b.find(a)
     if index != -1:
-        return b[index + len(a):]
+        return b[index + len(a) + 2:]  # Add 2 to the index
     return b
 
 async def llama_call(prompt: str, stop: Optional[List[str]] = None) -> str:
