@@ -237,11 +237,12 @@ async def prioritization_agent(this_task_id: int):
     response = await llama_call(prompt)
     new_tasks = response.split("\n")
     task_list = deque()
-    temp_task_id = 1
     for task_string in new_tasks:
-        task_name = task_string.strip()
-        task_list.append({"task_id": temp_task_id, "task_name": task_name})
-        temp_task_id += 1
+        task_parts = task_string.strip().split(".", 1)
+        if len(task_parts) == 2:
+            task_id = task_parts[0].strip()
+            task_name = task_parts[1].strip()
+            task_list.append({"task_id": task_id, "task_name": task_name})
 
     print("Tasks reprioritized:")
     print(task_list)
