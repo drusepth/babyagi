@@ -235,14 +235,16 @@ async def prioritization_agent(this_task_id: int):
     next_task_id = int(this_task_id)+1
     prompt = f"You are a task prioritization AI tasked with cleaning the formatting of and reprioritizing the following tasks: {task_names}. Consider the ultimate objective of your team:{OBJECTIVE}. Do not remove any tasks. Return the result as an ordered list with each task on its own line, in order of priority.\n\nPrioritized tasks:\n"
     response = await llama_call(prompt)
-    new_tasks = response.split('\n')
+    new_tasks = response.split("\n")
     task_list = deque()
+    temp_task_id = 1
     for task_string in new_tasks:
-        task_parts = task_string.strip().split(".", 1)
-        if len(task_parts) == 2:
-            task_id = task_parts[0].strip()
-            task_name = task_parts[1].strip()
-            task_list.append({"task_id": task_id, "task_name": task_name})
+        task_name = task_string.strip()
+        task_list.append({"task_id": temp_task_id, "task_name": task_name})
+        temp_task_id += 1
+
+    print("Tasks reprioritized:")
+    print(task_list)
 
 async def execution_agent(objective: str, task: str) -> str:
     context = context_agent(index=YOUR_TABLE_NAME, query=objective, n=5)
