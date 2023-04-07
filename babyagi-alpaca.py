@@ -72,6 +72,10 @@ class Llama(BaseLLM, BaseModel):
         result_thread.start()
         result_thread.join()
 
+        print("result from within llama:")
+        print(result)
+        print("==================")
+
         return result
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
@@ -231,7 +235,7 @@ async def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 1
 
 
 async def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
-    prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create a list of new tasks to be completed by the AI system that do not overlap with incomplete tasks. Print each task on a new line.\n\nTasks:\n"
+    prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create a list of new tasks to be completed by the AI system that do not overlap with incomplete tasks. Print print a | to delimit each task.\n\nTasks:\n"
     response = await llama_call(prompt)
 
     print("=============================")
@@ -239,7 +243,7 @@ async def task_creation_agent(objective: str, result: Dict, task_description: st
     print(response) # THIS IS THE LINE I AM ASKING A QUESTION ABOUT
     print("=============================")
 
-    new_tasks = response.split('\n')
+    new_tasks = response.split('|')
     return [{"task_name": task_name} for task_name in new_tasks]
 
 async def prioritization_agent(this_task_id: int):
