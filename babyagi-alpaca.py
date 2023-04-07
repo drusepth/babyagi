@@ -145,66 +145,66 @@ def add_task(task: Dict):
     task_list.append(task)
 
 # Alpaca integration
-async def generate(
-    prompt: str,
-    #model: str = "ggml-alpaca-13b-q4.bin",
-    #model: str = model_path,
-    model: str = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
-    n_predict: int = 300,
-    temp: float = 0.8,
-    top_k: int = 10000,
-    top_p: float = 0.40,
-    repeat_last_n: int = 100,
-    repeat_penalty: float = 1.2,
-    chunk_size: int = 4,  # Define a chunk size (in bytes) for streaming the output bit by bit
-):
-    args = (
-        #"./llama",
-        "/home/drusepth/dalai/alpaca/main",
-        "--model",
-        #"" + model,
-        "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
-        "--prompt",
-        prompt,
-        "--n_predict",
-        str(n_predict),
-        "--temp",
-        str(temp),
-        "--top_k",
-        str(top_k),
-        "--top_p",
-        str(top_p),
-        "--repeat_last_n",
-        str(repeat_last_n),
-        "--repeat_penalty",
-        str(repeat_penalty),
-        "--threads",
-        "8",
-    )
-    #print(args)
-    procLlama = await asyncio.create_subprocess_exec(
-        *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+# async def generate(
+#     prompt: str,
+#     #model: str = "ggml-alpaca-13b-q4.bin",
+#     #model: str = model_path,
+#     model: str = "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
+#     n_predict: int = 300,
+#     temp: float = 0.8,
+#     top_k: int = 10000,
+#     top_p: float = 0.40,
+#     repeat_last_n: int = 100,
+#     repeat_penalty: float = 1.2,
+#     chunk_size: int = 4,  # Define a chunk size (in bytes) for streaming the output bit by bit
+# ):
+#     args = (
+#         #"./llama",
+#         "/home/drusepth/dalai/alpaca/main",
+#         "--model",
+#         #"" + model,
+#         "/home/drusepth/dalai/alpaca/models/7B/ggml-model-q4_0.bin",
+#         "--prompt",
+#         prompt,
+#         "--n_predict",
+#         str(n_predict),
+#         "--temp",
+#         str(temp),
+#         "--top_k",
+#         str(top_k),
+#         "--top_p",
+#         str(top_p),
+#         "--repeat_last_n",
+#         str(repeat_last_n),
+#         "--repeat_penalty",
+#         str(repeat_penalty),
+#         "--threads",
+#         "8",
+#     )
+#     #print(args)
+#     procLlama = await asyncio.create_subprocess_exec(
+#         *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+#     )
 
-    answer = ""
+#     answer = ""
 
-    while True:
-        chunk = await procLlama.stdout.read(chunk_size)
-        if not chunk:
-            return_code = await procLlama.wait()
+#     while True:
+#         chunk = await procLlama.stdout.read(chunk_size)
+#         if not chunk:
+#             return_code = await procLlama.wait()
 
-            if return_code != 0:
-                error_output = await procLlama.stderr.read()
-                raise ValueError(error_output.decode("utf-8"))
-            else:
-                return
+#             if return_code != 0:
+#                 error_output = await procLlama.stderr.read()
+#                 raise ValueError(error_output.decode("utf-8"))
+#             else:
+#                 return
 
-        chunk = chunk.decode("utf-8")
-        print(chunk, end="",flush=True)
-        answer += chunk
+#         chunk = chunk.decode("utf-8")
+#         print(chunk, end="",flush=True)
+#         answer += chunk
 
-        if prompt in answer:
-            yield remove_matching_end(prompt, chunk)
+#         if prompt in answer:
+#             yield remove_matching_end(prompt, chunk)
 
 def remove_matching_end(a: str, b: str):
     min_length = min(len(a), len(b))
@@ -235,7 +235,7 @@ async def openai_call(prompt: str, temperature: float = 0.5, max_tokens: int = 1
 
 
 async def task_creation_agent(objective: str, result: Dict, task_description: str, task_list: List[str]):
-    prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create a list of new tasks to be completed by the AI system that do not overlap with incomplete tasks. Print print a | to delimit each task.\n\nTasks:\n"
+    prompt = f"You are a task creation AI that uses the result of an execution agent to create new tasks with the following objective: {objective}, The last completed task has the result: {result}. This result was based on this task description: {task_description}. These are incomplete tasks: {', '.join(task_list)}. Based on the result, create a list of new tasks to be completed by the AI system that do not overlap with incomplete tasks. Print print each task on a new line.\n\nTasks:\n"
     response = await llama_call(prompt)
 
     print("=============================")
